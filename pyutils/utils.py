@@ -6,6 +6,8 @@ def save_dict_hdf5(d, file_name, compress=5, predictive=True):
     filters = tables.Filters(complib='zlib', complevel=compress)
     with tables.open_file(file_name, mode='w', filters=filters) as hdf5:
         for name, array in d.items():
+            print(name)
+            assert array.dtype.type == 'i', 'Only signed integers are supported'
             hdf5.create_carray('/', name, obj=encode_diff(array) if predictive else array)
 
 
@@ -23,13 +25,11 @@ def load_dict_hdf5(file_name, predictive=True):
 def encode_diff(a):
     shape = a.shape
     a_lin = a.ravel()
-    a_lin_diff = np.hstack([a_lin[0], np.diff(a_lin)])
+    a_lin_diff = np.hstack([a_lin[0], a_lin[1:] - a_lin[:-1]])
     return a_lin_diff.reshape(shape)
 
 
 def decode_diff(a):
     shape = a.shape
     a_lin = np.cumsum(a.ravel())
-    print(shape)
-    print(a_lin)
     return a_lin.reshape(shape)

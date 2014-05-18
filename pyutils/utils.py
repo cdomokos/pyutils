@@ -60,5 +60,15 @@ def counter_to_array(c):
 
 
 def array_to_counter(a):
-    return collections.Counter({tuple(key) if len(key) > 1 else key[0]: value
-                                for key, value in zip(a[:-1, :].T, a[-1, :])})
+    return collections.Counter(dict([(tuple(key) if len(key) > 1 else key[0], value)
+                                     for key, value in zip(a[:-1, :].T, a[-1, :])]))
+
+
+def get_list_part(l, piece, parts):
+    n = len(l)
+
+    step = n / float(parts)
+    start = int(step * piece)
+    end = int(step * (piece + 1))
+
+    return l[start:end]

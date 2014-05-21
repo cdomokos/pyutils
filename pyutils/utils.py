@@ -10,20 +10,31 @@ def compose(*functions):
     return functools.reduce(lambda f, g: lambda x: f(g(x)), functions[::-1])
 
 
+def append_hdf5(hdf5, key, value, value_type=None):
+    if value_type:
+        converter = eval('%s_to_array' % value_type)
+        value = converter(value)
+    assert value.dtype.kind in ['i', 'f'], 'Only signed types are supported'
+    hdf5.create_carray('/', key, obj=encode_diff(value))
+
+    if value_type:
+        hdf5.root.__types__.append([(key, value_type)])
+
+    return 0
+
+
 def save_dict_hdf5(d, file_name, compress=5, types={}):
     filters = tables.Filters(complib='zlib', complevel=compress)
     with tables.open_file(file_name, mode='w', filters=filters) as hdf5:
-        for name, array in d.items():
-            if name in types:
-                converter = eval('%s_to_array' % types[name])
-                array = converter(array)
-            assert array.dtype.kind in ['i', 'f'], 'Only signed integers are supported'
-            hdf5.create_carray('/', name, obj=encode_diff(array))
         type_table_format = {'key': tables.StringCol(itemsize=50), 'serialize': tables.StringCol(itemsize=30)}
-
         hdf5.createTable('/', '__types__', type_table_format)
-        if types:
-            hdf5.root.__types__.append(types.items())
+
+        for name, array in d.items():
+
+            value_type = types[name] if name in types else None
+
+            append_hdf5(hdf5, name, array, value_type)
+    return 0
 
 
 def load_dict_hdf5(file_name):
@@ -62,6 +73,14 @@ def counter_to_array(c):
 def array_to_counter(a):
     return collections.Counter(dict([(tuple(key) if len(key) > 1 else key[0], value)
                                      for key, value in zip(a[:-1, :].T, a[-1, :])]))
+
+
+def int_to_array(i):
+    return np.array([i]).astype('int')
+
+
+def array_to_int(a):
+    return a[0]
 
 
 def get_list_part(l, piece, parts):

@@ -53,6 +53,20 @@ def load_dict_hdf5(file_name):
     return hdf5, d
 
 
+def assemble_matrix_hdf(file_name, matrix_prefixes, lbound=None, rbound=None):
+    hdf5, d = load_dict_hdf5(file_name)
+
+    matrices = []
+    for prefix in matrix_prefixes:
+        matrix_keys = sorted(filter(lambda s: s.startswith(prefix), d.keys()))
+        matrix = [d[key](0) for key in matrix_keys[lbound:rbound]]
+        matrices.append(matrix)
+
+    hdf5.close()
+
+    return matrices
+
+
 def encode_diff(a):
     shape = a.shape
     a_lin = a.ravel()
@@ -81,6 +95,10 @@ def int_to_array(i):
 
 def array_to_int(a):
     return a[0]
+
+
+def array_to_array(a):
+    return a.astype('int')
 
 
 def get_list_part(l, piece, parts):

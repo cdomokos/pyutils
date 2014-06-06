@@ -5,6 +5,8 @@ import collections
 
 import functools
 
+import os
+
 
 def compose(*functions):
     return functools.reduce(lambda f, g: lambda x: f(g(x)), functions[::-1])
@@ -53,6 +55,28 @@ def load_dict_hdf5(file_name):
     return hdf5, d
 
 
+def assemble_matrix_from_folder(folder_name, matrix_names, glue_functions):
+
+    matrices = collections.defaultdict(list)
+
+    for file_name in sorted(os.listdir(folder_name)):
+
+        file_name = os.path.join(folder_name, file_name)
+
+        hdf5, d = load_dict_hdf5(file_name)
+
+        for matrix_name in matrix_names:
+            matrices[matrix_name].append(d[matrix_name](0))
+
+        hdf5.close()
+
+    for key, glue in zip(matrix_names, glue_functions):
+        value = matrices[key]
+        matrices[key] = glue(value)
+
+    return matrices
+
+
 def assemble_matrix_hdf(file_name, matrix_prefixes, lbound=None, rbound=None):
     hdf5, d = load_dict_hdf5(file_name)
 
@@ -98,6 +122,14 @@ def array_to_int(a):
 
 
 def array_to_array(a):
+    return a.astype('int')
+
+
+def array_to_barray(a):
+    return a.astype('byte')
+
+
+def barray_to_array(a):
     return a.astype('int')
 
 

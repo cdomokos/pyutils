@@ -16,8 +16,10 @@ def append_hdf5(hdf5, key, value, value_type=None):
     if value_type:
         converter = eval('%s_to_array' % value_type)
         value = converter(value)
-    assert value.dtype.kind in ['i', 'f'], 'Only signed types are supported'
-    hdf5.create_carray('/', key, obj=encode_diff(value))
+    if value.dtype.kind in ['i', 'f']:
+        hdf5.create_carray('/', key, obj=encode_diff(value))
+    else:
+        hdf5.create_carray('/', key, obj=value)
 
     if value_type:
         hdf5.root.__types__.append([(key, value_type)])
@@ -29,7 +31,7 @@ def save_dict_hdf5(d, file_name, compress=5, types={}):
     filters = tables.Filters(complib='zlib', complevel=compress)
     with tables.open_file(file_name, mode='w', filters=filters) as hdf5:
         type_table_format = {'key': tables.StringCol(itemsize=50), 'serialize': tables.StringCol(itemsize=30)}
-        hdf5.createTable('/', '__types__', type_table_format)
+        hdf5.create_table('/', '__types__', type_table_format)
 
         for name, array in d.items():
 
@@ -44,8 +46,10 @@ def load_dict_hdf5(file_name):
 
     types = dict(hdf5.root.__types__.read())
     fields = filter(lambda s: not s.startswith("_") and not s == '__types__', dir(hdf5.root))
-    d = dict([(field, [functools.partial(lambda f, dummy: np.array(f), getattr(hdf5.root, field)), decode_diff]) for field in fields])
+    d = dict([(field, [functools.partial(lambda f, dummy: np.array(f), getattr(hdf5.root, field))]) for field in fields])
     for name, array in d.items():
+        if getattr(hdf5.root, name).dtype.kind in ['i', 'f']:
+            d[name] += [decode_diff]
         if name in types:
             d[name] += [eval('array_to_%s' % types[name])]
 
@@ -131,6 +135,20 @@ def array_to_barray(a):
 
 def barray_to_array(a):
     return a.astype('int')
+
+
+def bitmask_to_array(b):
+    n = len(b)
+    remove = [0] * 8
+    remove[-n % 8] = 1
+    b = np.hstack([remove, b])
+    return np.packbits(b)
+
+
+def array_to_bitmask(b):
+    remove = np.unpackbits(b[0])
+    cut = np.argmax(remove)
+    return np.unpackbits(b)[8:-cut if cut else None]
 
 
 def get_list_part(l, piece, parts):

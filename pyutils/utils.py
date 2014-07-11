@@ -159,3 +159,14 @@ def get_list_part(l, piece, parts):
     end = int(step * (piece + 1))
 
     return l[start:end]
+
+
+def split_array(l, counts):
+
+    i = 0
+    l_splits = []
+    for c in counts:
+        l_splits.append(l[i:i + c])
+        i += c
+    assert(i == np.sum(counts))
+    return l_splits

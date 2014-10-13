@@ -39,9 +39,9 @@ def append_hdf5(hdf5, key, value, value_type=None):
 
 def save_dict_hdf5(d, file_name, compress=5, types={}):
     filters = tables.Filters(complib='zlib', complevel=compress)
-    with tables.open_file(file_name, mode='w', filters=filters) as hdf5:
+    with tables.openFile(file_name, mode='w', filters=filters) as hdf5:
         type_table_format = {'key': tables.StringCol(itemsize=50), 'serialize': tables.StringCol(itemsize=30)}
-        hdf5.create_table('/', '__types__', type_table_format)
+        hdf5.createTable('/', '__types__', type_table_format)
 
         for name, array in d.items():
 
@@ -52,7 +52,7 @@ def save_dict_hdf5(d, file_name, compress=5, types={}):
 
 
 def load_dict_hdf5(file_name):
-    hdf5 = tables.open_file(file_name, mode='r')
+    hdf5 = tables.openFile(file_name, mode='r')
 
     types = dict(hdf5.root.__types__.read())
     fields = filter(lambda s: not s.startswith("_") and not s == '__types__', dir(hdf5.root))

@@ -7,6 +7,16 @@ import functools
 
 import os
 
+import colorsys
+
+
+def generate_colors(N):
+    HSV_tuples = [(x / float(N), 0.5, 0.5) for x in range(N)]
+    RGB_colors = np.array(map(lambda x: colorsys.hsv_to_rgb(*x), HSV_tuples))
+    np.random.shuffle(RGB_colors)
+    colors = [tuple((255 * color).astype('int')) for color in RGB_colors]
+    return colors
+
 
 def compose(*functions):
     return functools.reduce(lambda f, g: lambda x: f(g(x)), functions[::-1])
@@ -16,10 +26,10 @@ def append_hdf5(hdf5, key, value, value_type=None):
     if value_type:
         converter = eval('%s_to_array' % value_type)
         value = converter(value)
-    if value.dtype.kind in ['i', 'f']:
-        hdf5.create_carray('/', key, obj=encode_diff(value))
-    else:
-        hdf5.create_carray('/', key, obj=value)
+    #if value.dtype.kind in ['i', 'f']:
+    #    hdf5.create_carray('/', key, obj=encode_diff(value))
+    #else:
+    hdf5.create_carray('/', key, obj=value)
 
     if value_type:
         hdf5.root.__types__.append([(key, value_type)])
@@ -48,8 +58,8 @@ def load_dict_hdf5(file_name):
     fields = filter(lambda s: not s.startswith("_") and not s == '__types__', dir(hdf5.root))
     d = dict([(field, [functools.partial(lambda f, dummy: np.array(f), getattr(hdf5.root, field))]) for field in fields])
     for name, array in d.items():
-        if getattr(hdf5.root, name).dtype.kind in ['i', 'f']:
-            d[name] += [decode_diff]
+        #if getattr(hdf5.root, name).dtype.kind in ['i', 'f']:
+        #    d[name] += [decode_diff]
         if name in types:
             d[name] += [eval('array_to_%s' % types[name])]
 
@@ -170,3 +180,30 @@ def split_array(l, counts):
         i += c
     assert(i == np.sum(counts))
     return l_splits
+
+
+def subsample(n, count, p):
+    new_count = []
+    new_idx = []
+    current_i = 0
+    for c in count:
+        nc = int(c * p + 1)
+        idx = np.random.permutation(np.arange(current_i, current_i + c))[:nc]
+        current_i += c
+        new_count.append(nc)
+        new_idx += list(idx)
+    return new_count, new_idx
+
+
+def random_hadamard_vector(n):
+    if n == 0:
+        return np.array([])
+    if n == 1:
+        return np.array([1])
+
+    power = int(np.log2(n))
+
+    p = random_hadamard_vector(2 ** (power - 1))
+    p = np.array(np.hstack([p, p]) if np.random.random() > 0.5 else np.hstack([p, -p]))
+
+    return np.hstack([p, random_hadamard_vector(n - 2 ** power)])

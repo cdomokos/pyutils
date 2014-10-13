@@ -19,7 +19,7 @@ def llcEncoding(data, codebook, knn, kdtree_codebook=None, beta=1.0):
         z = codebook[idx[i], :] - np.repeat(data[i][np.newaxis, :], knn, axis=0)
         C = z.dot(z.T)
         C = C + beta * np.trace(C) * np.eye(knn)
-        w = np.linalg.solve(C, np.ones((knn, 1.0)))
+        w = np.linalg.solve(C, np.ones((knn, 1)))
         w[w < 0] = 0.0
         w = w / np.sum(w)
         codes.append(zip(idx[i], w.ravel()))

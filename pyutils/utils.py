@@ -127,6 +127,14 @@ def array_to_counter(a):
                                      for key, value in zip(a[:-1, :].T, a[-1, :])]))
 
 
+def list_of_arrays_to_array(l):
+    return np.array([len(l)] + map(len, l) + list(reduce(lambda a, b: np.concatenate((a, b)) if not (b is None) else a, l)))
+
+
+def array_to_list_of_arrays(a):
+    return [np.array(a[np.array(1+a[0] + a[1:1+i].sum() + np.arange(a[1+i]), dtype='int')]) for i in range(int(a[0]))]
+
+
 def int_to_array(i):
     return np.array([i]).astype('int')
 
